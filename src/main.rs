@@ -9,10 +9,9 @@ use llm::{
 };
 use r18::tr;
 use spark::{
-    data::{Block, Blocks, FindById, FindMutById},
-    show_data_as_table,
+    data::{Block, Blocks, FindById, FindMutById}, get_branches_as_table, save_story, show_data_as_table,
 };
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[structopt(version)]
@@ -298,34 +297,4 @@ async fn main() -> Result<()> {
     }
 
     save_story(&blocks, &options.save_path)
-}
-
-pub fn save_story(blocks: &Blocks, save_path: &Path) -> color_eyre::Result<()> {
-    if !blocks.is_empty() {
-        let content = if save_path.ends_with(".json") {
-            let data = serde_json::to_string(blocks)?.to_owned();
-            data.as_bytes().into()
-        } else {
-            rkyv::to_bytes::<rkyv::rancor::Error>(blocks)?.to_vec()
-        };
-        std::fs::write(save_path, content)?;
-    }
-
-    Ok(())
-}
-
-pub fn get_branches_as_table(block: &Block, blocks: &Blocks, header: &str) -> String {
-    show_data_as_table(
-        &block
-            .branches
-            .iter()
-            .filter_map(|branch| {
-                blocks
-                    .find_by_id(*branch)
-                    .map(|branch| branch.content.to_string())
-            })
-            .map(|value| vec![value])
-            .collect::<Vec<Vec<String>>>(),
-        header,
-    )
 }

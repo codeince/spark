@@ -1,18 +1,44 @@
-use std::borrow::Cow;
-
-use regex::{Captures, Regex};
 pub mod data;
+use crate::data::{Block, Blocks, FindById};
+use regex::{Captures, Regex};
+use std::{borrow::Cow, path::Path};
+
+pub fn save_story(blocks: &Blocks, save_path: &Path) -> color_eyre::Result<()> {
+    if !blocks.is_empty() {
+        let content = if save_path.ends_with(".json") {
+            let data = serde_json::to_string(blocks)?.to_owned();
+            data.as_bytes().into()
+        } else {
+            rkyv::to_bytes::<rkyv::rancor::Error>(blocks)?.to_vec()
+        };
+        std::fs::write(save_path, content)?;
+    }
+
+    Ok(())
+}
+
+pub fn get_branches_as_table(block: &Block, blocks: &Blocks, header: &str) -> String {
+    show_data_as_table(
+        &block
+            .branches
+            .iter()
+            .filter_map(|branch| {
+                blocks
+                    .find_by_id(*branch)
+                    .map(|branch| branch.content.to_string())
+            })
+            .map(|value| vec![value])
+            .collect::<Vec<Vec<String>>>(),
+        header,
+    )
+}
 
 pub fn show_data_as_table(rows: &[Vec<impl ToString>], header: &str) -> String {
     let mut result: Vec<String> = header
         .lines()
         .filter_map(|line| {
             let line = line.trim();
-            if line.is_empty() {
-                None
-            } else {
-                Some(line.to_owned())
-            }
+            (!line.is_empty()).then_some(line.to_owned())
         })
         .collect();
 
