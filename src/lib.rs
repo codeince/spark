@@ -52,30 +52,26 @@ pub fn parse_macro(input: &str) -> Cow<'_, str> {
         {
             let arguments: Vec<&str> = arguments.as_str().split(',').map(str::trim).collect();
 
-            match name.as_str().trim() {
-                "dnd" => {
-                    let arguments: Vec<i64> =
-                        arguments.iter().filter_map(|v| v.parse().ok()).collect();
+            if name.as_str().trim() == "dnd" {
+                let arguments: Vec<i64> = arguments.iter().filter_map(|v| v.parse().ok()).collect();
 
-                    if arguments.len() == 3 {
-                        let value = arguments[0];
-                        let minimum_value = arguments[1];
-                        let maximum_value = arguments[2];
+                if arguments.len() == 3 {
+                    let value = arguments[0];
+                    let minimum_value = arguments[1];
+                    let maximum_value = arguments[2];
 
-                        return if rand::random_range(minimum_value..=maximum_value) >= value {
-                            caps.name("success")
-                                .map(|success| success.as_str().trim())
-                                .unwrap_or_default()
-                                .to_owned()
-                        } else {
-                            caps.name("failure")
-                                .map(|failure| failure.as_str().trim())
-                                .unwrap_or_default()
-                                .to_owned()
-                        };
-                    }
+                    return if rand::random_range(minimum_value..=maximum_value) >= value {
+                        caps.name("success")
+                            .map(|success| success.as_str().trim())
+                            .unwrap_or_default()
+                            .to_owned()
+                    } else {
+                        caps.name("failure")
+                            .map(|failure| failure.as_str().trim())
+                            .unwrap_or_default()
+                            .to_owned()
+                    };
                 }
-                _ => {}
             }
         }
 

@@ -291,7 +291,7 @@ async fn main() -> Result<()> {
         termimad::print_inline(&format!(
             "<***{}***>\n{}\n{}",
             tr!("ai"),
-            &response,
+            response,
             std::iter::repeat_n('-', termimad::terminal_size().0 as usize).collect::<String>(),
         ));
         message.clear();
