@@ -1,0 +1,67 @@
+name: Rust
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+  NAME: spark
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        OS: [ubuntu-latest, windows-latest]
+        BUILD_TARGET: [release] # refers to a cargo profile
+    runs-on: ${{matrix.OS}}
+    steps:
+      - name: Cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/checkout@v7
+      - name: Syntax check
+        run: cargo clippy -- -D warnings
+      - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo build --profile ${{ matrix.BUILD_TARGET }} --verbose
+      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo test --profile ${{ matrix.BUILD_TARGET }} --verbose
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-${{runner.os}}
+          path: |
+            prompt.txt
+            target/${{ matrix.BUILD_TARGET }}/${{env.NAME}}${{runner.os == 'Windows' && '.exe' || ''}}
+
+  release:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: build-*
+          merge-multiple: true
+          path: artifacts
+      - name: Get Version
+        id: version
+        shell: bash
+        run: |
+            VERSION=$(./artifacts/${{env.NAME}} -V)
+
+            echo "VERSION=${VERSION/${{env.NAME}} }" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub Release
+        run: gh release create "${{steps.version.outputs.VERSION}}" artifacts/* --generate-notes -R ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

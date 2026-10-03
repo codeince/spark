@@ -1,0 +1,10 @@
+{
+    "ai": "AI",
+    "action_begin": "Where and how you gonna begin?",
+    "action_needed": "What you gonna say?",
+    "generating": "Generating...",
+    "branch_table": "|-\n|***branch***|\n|-",
+    "model_table": "|-|:-:\n|***id***|***model***|\n|-|:-:",
+    "model_not_found": "Model wasn't provide",
+    "user": "User"
+}
