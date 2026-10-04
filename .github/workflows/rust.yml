@@ -15,8 +15,10 @@ jobs:
     strategy:
       matrix:
         OS: [ubuntu-latest, windows-latest]
-        BUILD_TARGET: [release] # refers to a cargo profile
-    runs-on: ${{matrix.OS}}
+        BUILD_TARGET: [release]
+    runs-on: ${{ matrix.OS }}
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Cache
         uses: actions/cache@v6
@@ -33,13 +35,21 @@ jobs:
         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --verbose
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --verbose
+      - name: Get Version
+        id: version
+        shell: bash
+        run: |
+          BIN="target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}"
+          VERSION=$("$BIN" -V)
+          VERSION="${VERSION/${{ env.NAME }} }"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
         with:
-          name: build-${{runner.os}}
+          name: build-${{ runner.os }}-${{ steps.version.outputs.VERSION }}
           path: |
             prompt.txt
-            target/${{ matrix.BUILD_TARGET }}/${{env.NAME}}${{runner.os == 'Windows' && '.exe' || ''}}
+            target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
 
   release:
     if: github.event_name == 'push'
@@ -54,15 +64,7 @@ jobs:
           pattern: build-*
           merge-multiple: true
           path: artifacts
-      - run: dir artifacts
-      - name: Get Version
-        id: version
-        shell: bash
-        run: |
-            VERSION=$(./artifacts/target/release/${{env.NAME}} -V)
-
-            echo "VERSION=${VERSION/${{env.NAME}} }" >> "$GITHUB_OUTPUT"
       - name: Create GitHub Release
-        run: gh release create "${{steps.version.outputs.VERSION}}" artifacts/* --generate-notes -R ${{ github.repository }}
+        run: gh release create "${{ needs.build.outputs.version }}" artifacts/* --generate-notes -R ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
