@@ -35,14 +35,14 @@ jobs:
         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --verbose
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --verbose
-      - name: Move prompt to build directory
+      - name: Move executable to main folder 
         shell: bash
-        run: mv prompt.txt target/${{ matrix.BUILD_TARGET }}/prompt.txt
+        run: mv target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }} ${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Get Version
         id: version
         shell: bash
         run: |
-          BIN="target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}"
+          BIN="${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}"
           VERSION=$("$BIN" -V)
           VERSION="${VERSION/${{ env.NAME }} }"
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -51,8 +51,8 @@ jobs:
         with:
           name: build-${{ runner.os }}
           path: |
-            target${{ matrix.BUILD_TARGET }}/prompt.txt
-            target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
+            prompt.txt
+            ${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
 
   release:
     if: github.event_name == 'push'
