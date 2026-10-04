@@ -35,6 +35,9 @@ jobs:
         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --verbose
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --verbose
+      - name: Move prompt to build directory
+        shell: bash
+        run: mv prompt.txt target/${{ matrix.BUILD_TARGET }}/prompt.txt
       - name: Get Version
         id: version
         shell: bash
@@ -46,9 +49,9 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
         with:
-          name: build-${{ runner.os }}-${{ steps.version.outputs.VERSION }}
+          name: build-${{ runner.os }}
           path: |
-            prompt.txt
+            target${{ matrix.BUILD_TARGET }}/prompt.txt
             target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
 
   release:
