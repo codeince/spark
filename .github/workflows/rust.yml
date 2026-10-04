@@ -35,16 +35,15 @@ jobs:
         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --verbose
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --verbose
-      - name: Move executable to main folder 
+      - name: Move executable to main folder
         shell: bash
         run: mv target/${{ matrix.BUILD_TARGET }}/${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }} ${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Get Version
         id: version
         shell: bash
         run: |
-          BIN="${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}"
-          VERSION=$("$BIN" -V)
-          VERSION="${VERSION/${{ env.NAME }} }"
+          VERSION=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[0].version')
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
