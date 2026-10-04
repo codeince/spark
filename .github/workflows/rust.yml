@@ -58,7 +58,7 @@ jobs:
         id: version
         shell: bash
         run: |
-            VERSION=$(./artifacts/build-${{runner.os}}/target/release/${{env.NAME}} -V)
+            VERSION=$(./artifacts/target/release/${{env.NAME}} -V)
 
             echo "VERSION=${VERSION/${{env.NAME}} }" >> "$GITHUB_OUTPUT"
       - name: Create GitHub Release
