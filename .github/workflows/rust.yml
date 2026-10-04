@@ -54,6 +54,7 @@ jobs:
           pattern: build-*
           merge-multiple: true
           path: artifacts
+      - run: dir artifacts
       - name: Get Version
         id: version
         shell: bash
