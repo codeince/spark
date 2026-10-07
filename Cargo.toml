@@ -2,7 +2,7 @@
 name = "spark"
 description = "Flamee on Rust with extra features"
 authors = ["Code Slasher Incorporation"]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license-file = "LICENSE"
 readme = "README.md"

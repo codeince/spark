@@ -1,6 +1,6 @@
 pub mod data;
 use crate::data::{Block, Blocks, FindById};
-use regex::{Captures, Regex};
+use regex::Captures;
 use std::{borrow::Cow, path::Path};
 
 pub fn save_story(blocks: &Blocks, save_path: &Path) -> color_eyre::Result<()> {
@@ -61,43 +61,50 @@ pub fn show_data_as_table(rows: &[Vec<impl ToString>], header: &str) -> String {
 }
 
 pub fn parse_macro(input: &str) -> Cow<'_, str> {
-    let pattern = Regex::new(
-        &[
-            r"@(?P<name>\w+)",
-            r"\((?P<arguments>[^)]*)\)",
-            r"(\[(?P<success>[^\]]*)\])?(",
-            r"\{(?P<failure>[^}]*)\})?",
-        ]
-        .join(r"\s*"),
-    )
-    .unwrap();
+    regex::regex!(r"@\s*(?P<name>\w+)\s*\((?P<arguments>[^)]*)\)\s*(\[(?P<success>[^\]]*)\])?(\s*\{(?P<failure>[^}]*)\})?")
+        .replace_all(input, |caps: &Captures| {
+        let success_text = caps
+            .name("success")
+            .map(|success| success.as_str().trim())
+            .unwrap_or_default()
+            .to_owned();
+        let failure_text = caps
+            .name("failure")
+            .map(|failure| failure.as_str().trim())
+            .unwrap_or_default()
+            .to_owned();
 
-    pattern.replace_all(input, |caps: &Captures| {
-        if let Some(name) = caps.name("name")
-            && let Some(arguments) = caps.name("arguments")
+        if let Some(name) = caps.name("name").map(|name| name.as_str().trim())
+            && let Some(arguments) = caps
+                .name("arguments")
+                .map(|arguments| arguments.as_str().trim())
         {
-            let arguments: Vec<&str> = arguments.as_str().split(',').map(str::trim).collect();
+            let arguments: Vec<&str> = arguments.split(',').map(str::trim).collect();
 
-            if name.as_str().trim() == "dnd" {
-                let arguments: Vec<i64> = arguments.iter().filter_map(|v| v.parse().ok()).collect();
+            let macro_result = match name {
+                "dnd" => Some({
+                    let arguments: Vec<i64> =
+                        arguments.iter().filter_map(|v| v.parse().ok()).collect();
+                        
+                    if arguments.len() == 3 {
+                        let value = arguments[0];
+                        let minimum_value = arguments[1];
+                        let maximum_value = arguments[2];
 
-                if arguments.len() == 3 {
-                    let value = arguments[0];
-                    let minimum_value = arguments[1];
-                    let maximum_value = arguments[2];
-
-                    return if rand::random_range(minimum_value..=maximum_value) >= value {
-                        caps.name("success")
-                            .map(|success| success.as_str().trim())
-                            .unwrap_or_default()
-                            .to_owned()
+                        rand::random_range(minimum_value..=maximum_value) >= value
                     } else {
-                        caps.name("failure")
-                            .map(|failure| failure.as_str().trim())
-                            .unwrap_or_default()
-                            .to_owned()
-                    };
-                }
+                        false
+                    }
+                }),
+                _ => None,
+            };
+
+            if let Some(is_success) = macro_result {
+                return if is_success {
+                    success_text
+                } else {
+                    failure_text
+                };
             }
         }
 
