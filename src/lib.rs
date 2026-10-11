@@ -60,54 +60,94 @@ pub fn show_data_as_table(rows: &[Vec<impl ToString>], header: &str) -> String {
     result.join("\n")
 }
 
-pub fn parse_macro(input: &str) -> Cow<'_, str> {
-    regex::regex!(r"@\s*(?P<name>\w+)\s*\((?P<arguments>[^)]*)\)\s*(\[(?P<success>[^\]]*)\])?(\s*\{(?P<failure>[^}]*)\})?")
-        .replace_all(input, |caps: &Captures| {
-        let success_text = caps
-            .name("success")
-            .map(|success| success.as_str().trim())
-            .unwrap_or_default()
-            .to_owned();
-        let failure_text = caps
-            .name("failure")
-            .map(|failure| failure.as_str().trim())
-            .unwrap_or_default()
-            .to_owned();
+fn get_with_fallback(caps: &Captures, fallback: &str) -> Option<String> {
+    caps.name(fallback)
+        .or(caps.name(&format!("{fallback}2")))
+        .map(|v| v.as_str().to_owned())
+}
 
-        if let Some(name) = caps.name("name").map(|name| name.as_str().trim())
-            && let Some(arguments) = caps
-                .name("arguments")
-                .map(|arguments| arguments.as_str().trim())
-        {
-            let arguments: Vec<&str> = arguments.split(',').map(str::trim).collect();
+fn replace_macros(caps: &Captures) -> String {
+    let mut success_text = get_with_fallback(caps, "success")
+        .map(|v| v.trim().to_owned())
+        .unwrap_or_default();
+    let failure_text = get_with_fallback(caps, "failure")
+        .map(|v| v.trim().to_owned())
+        .unwrap_or_default();
 
-            let macro_result = match name {
-                "dnd" => Some({
-                    let arguments: Vec<i64> =
-                        arguments.iter().filter_map(|v| v.parse().ok()).collect();
-                        
-                    if arguments.len() == 3 {
-                        let value = arguments[0];
-                        let minimum_value = arguments[1];
-                        let maximum_value = arguments[2];
+    if let Some(name) = caps.name("name").map(|name| name.as_str().trim())
+        && let Some(arguments) = caps
+            .name("arguments")
+            .map(|arguments| arguments.as_str().trim())
+    {
+        let arguments: Vec<&str> = arguments.split(',').map(str::trim).collect();
 
-                        rand::random_range(minimum_value..=maximum_value) >= value
-                    } else {
-                        false
-                    }
-                }),
-                _ => None,
-            };
+        let macro_result = match name {
+            "dnd" => Some({
+                let arguments: Vec<i64> = arguments
+                    .iter()
+                    .filter_map(|v| v.trim().parse().ok())
+                    .collect();
 
-            if let Some(is_success) = macro_result {
-                return if is_success {
-                    success_text
+                if arguments.len() == 3 {
+                    let value = arguments[0];
+                    let minimum_value = arguments[1];
+                    let maximum_value = arguments[2];
+
+                    rand::random_range(minimum_value..=maximum_value) >= value
                 } else {
-                    failure_text
-                };
-            }
-        }
+                    false
+                }
+            }),
+            "randi" => Some({
+                let arguments: Vec<i64> = arguments
+                    .iter()
+                    .filter_map(|v| v.trim().parse().ok())
+                    .collect();
 
-        caps.get_match().as_str().to_owned()
-    })
+                if arguments.len() == 2 {
+                    let minimum_value = arguments[0];
+                    let maximum_value = arguments[1];
+                    let value = rand::random_range(minimum_value..=maximum_value);
+                    success_text = success_text.replace("{num}", &value.to_string());
+
+                    true
+                } else {
+                    false
+                }
+            }),
+            "randf" => Some({
+                let arguments: Vec<f64> = arguments
+                    .iter()
+                    .filter_map(|v| v.trim().parse().ok())
+                    .collect();
+
+                if arguments.len() == 2 {
+                    let minimum_value = arguments[0];
+                    let maximum_value = arguments[1];
+                    let value = rand::random_range(minimum_value..=maximum_value);
+                    success_text = success_text.replace("{num}", &value.to_string());
+
+                    true
+                } else {
+                    false
+                }
+            }),
+            _ => None,
+        };
+
+        if let Some(is_success) = macro_result {
+            return if is_success {
+                success_text
+            } else {
+                failure_text
+            };
+        }
+    }
+
+    caps.get_match().as_str().to_owned()
+}
+
+pub fn parse_macro(input: &str) -> Cow<'_, str> {
+    regex::regex!(r"@(?P<name>[^()]*)\((?P<arguments>[^()]*)\)\s*(?:\[(?P<success>[^\]]*)\]\s*(?:\{(?P<failure>[^}]*)\})?|\{(?P<failure2>[^}]*)\}\s*(?:\[(?P<success2>[^\]]*)\])?)?")
+        .replace_all(input, replace_macros)
 }

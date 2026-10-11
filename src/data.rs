@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 use llm::chat::{ChatMessage, ChatRole};
 use rkyv::Archive;
+use std::collections::HashSet;
 
 pub type Blocks = Vec<Block>;
 pub type Branches = HashSet<usize>;
@@ -80,5 +80,49 @@ impl FindMutById<Block> for Blocks {
     fn find_mut_by_id(&mut self, id: impl Into<usize>) -> Option<&mut Block> {
         let id = id.into();
         self.iter_mut().find(|block| block.id == id)
+    }
+}
+
+pub trait IsPlain {
+    fn is_plain(&self) -> bool;
+}
+
+impl IsPlain for Blocks {
+    fn is_plain(&self) -> bool {
+        for block in self {
+            if block.branches.len() > 1 {
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
+pub trait TrimKnown {
+    fn trim_known(&mut self, id: impl Into<usize>);
+}
+
+impl TrimKnown for Blocks {
+    fn trim_known(&mut self, id: impl Into<usize>) {
+        let mut current_index: usize = id.into();
+
+        while let Some(block) = self.find_by_id(current_index)
+            && block.branches.is_empty()
+        {
+            let mut dependencies = vec![];
+
+            for another_block in self.iter() {
+                if another_block.branches.contains(&current_index) {
+                    dependencies.push(another_block.id);
+                }
+            }
+
+            if dependencies.len() == 1 {
+                current_index = *dependencies.first().unwrap();
+            } else {
+                break;
+            }
+        }
     }
 }

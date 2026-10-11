@@ -4,20 +4,21 @@ use llm::{
     backends::ollama::Ollama,
     builder::{LLMBackend, LLMBuilder},
     chat::{ChatMessage, ChatRole},
-    memory::{MemoryProvider, SharedMemory, SlidingWindowMemory},
+    memory::{MemoryProvider, SharedMemory, SlidingWindowMemory, TrimStrategy},
     models::ModelsProvider,
 };
 use r18::tr;
 use spark::{
-    data::{Block, Blocks, FindById, FindMutById}, get_branches_as_table, save_story, show_data_as_table,
+    data::{Block, Blocks, FindById, FindMutById, IsPlain, TrimKnown},
+    get_branches_as_table, save_story, show_data_as_table,
 };
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[structopt(version)]
+#[structopt(about, version)]
 struct Options {
     // Path to global prompt
-    #[arg(short, long, default_value = "prompt.txt")]
+    #[arg(short, long, default_value = "prompt.md")]
     prompt_path: PathBuf,
 
     // Base URL of OpenAI-compatible API
@@ -126,7 +127,7 @@ async fn main() -> Result<()> {
         .take(2)
         .map(|block| block.to_owned().into())
         .collect();
-    let memory = SlidingWindowMemory::new(10);
+    let memory = SlidingWindowMemory::with_strategy(3, TrimStrategy::Summarize);
     let shared_memory = SharedMemory::new_reactive(memory);
     let llm = LLMBuilder::new()
         .backend(options.backend)
@@ -173,7 +174,11 @@ async fn main() -> Result<()> {
             if let Some(current_block) = current_block
                 && !current_block.branches.is_empty()
             {
-                termimad::print_text(&get_branches_as_table(current_block, &blocks, tr!("branch_table")));
+                termimad::print_text(&get_branches_as_table(
+                    current_block,
+                    &blocks,
+                    tr!("branch_table"),
+                ));
             }
 
             if messages.is_empty() {
@@ -207,6 +212,7 @@ async fn main() -> Result<()> {
             }
             if simple_line.contains("/save") {
                 save_story(&blocks, &options.save_path)?;
+                println!("{}", tr!("saved"));
             }
             message.push(line.trim_end().to_owned());
         }
@@ -251,27 +257,29 @@ async fn main() -> Result<()> {
             }
             blocks.push(user_block);
 
-            let mut content = llm
-                .chat(&{
-                    let mut messages = messages.clone();
+            let mut message = messages.last().unwrap().to_owned();
+            if !blocks.is_plain() {
+                let mut blocks = blocks.clone();
+                blocks.trim_known(blocks.len() - 1);
 
-                    if blocks.len() > 3 {
-                        messages.last_mut().unwrap().content += &format!(
-                            "\n\nAll ways of this story in JSON(don't print it to user):\n\t{}",
-                            serde_json::to_string_pretty(&blocks)?
-                                .replace(r##""role": "0""##, r##""role": "user""##)
-                                .replace(r##""role": "1""##, r##""role": "assistant""##)
-                        );
-                    }
+                if blocks.len() > 3 {
+                    message.content += &format!(
+                        "\n\nAll ways of this story in JSON(don't print it to user):\n\t{}",
+                        serde_json::to_string_pretty(&blocks)?
+                            .replace(r##""role": "0""##, r##""role": "user""##)
+                            .replace(r##""role": "1""##, r##""role": "assistant""##)
+                    );
+                }
+            }
+            let message = vec![message];
 
-                    vec![messages.last().unwrap().to_owned()]
-                })
-                .await?
-                .text()
-                .unwrap();
+            let mut content = String::new();
+            while content.is_empty() {
+                content = llm.chat(&message).await?.text().unwrap();
 
-            if let Some((_thinking, writing)) = content.split_once("</think>") {
-                content = writing.to_owned();
+                if let Some((_thinking, writing)) = content.split_once("</think>") {
+                    content = writing.to_owned();
+                }
             }
             content = spark::parse_macro(&content).to_string();
             let mut ai_block: Block = Block::ai(&content);

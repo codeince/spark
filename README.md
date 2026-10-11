@@ -25,6 +25,6 @@
 
 # УСТАНОВКА
 
-1. Скачать из [последнего релиза](https://github.com/codeince/spark/releases/latest) исполняемый файл и `prompt.txt`
+1. Скачать из [последнего релиза](https://github.com/codeince/spark/releases/latest) исполняемый файл и `prompt.md`
 2. Запустить [Ollama](https://ollama.com/download) и скачать любую нужную вам модель, **если вы хотите офлайн генерацию**
 3. По умолчанию Spark настроен на Ollama, если у вас не Ollama, то при запуске передайте доп. аргументы(`--base-url {путь_до_api}`, `--api-key {api_ключ}`)

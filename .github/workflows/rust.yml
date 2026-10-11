@@ -50,7 +50,7 @@ jobs:
         with:
           name: build-${{ runner.os }}
           path: |
-            prompt.txt
+            prompt.md
             ${{ env.NAME }}${{ runner.os == 'Windows' && '.exe' || '' }}
 
   release:
