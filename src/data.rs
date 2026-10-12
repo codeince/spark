@@ -107,27 +107,30 @@ impl TrimKnown for Blocks {
     fn trim_known(&mut self, id: impl Into<usize>) {
         let mut current_index: usize = id.into();
 
-        while let Some(block) = self.find_by_id(current_index)
+        'blocks: while let Some(block) = self.find_by_id(current_index)
             && block.branches.is_empty()
         {
-            let mut dependencies = vec![];
+            let mut id = None;
 
             for another_block in self.iter() {
                 if another_block.branches.contains(&current_index) {
-                    dependencies.push(another_block.id);
+                    if id.is_none() {
+                        id = Some(another_block.id);
+                    } else {
+                        break 'blocks;
+                    }
                 }
             }
 
-            if dependencies.len() == 1 {
-                if let Some(index) = self.iter().position(|b| b.id == current_index) {
-                    self.swap_remove(index);
-                }
-                if let Some(id) = dependencies.first()
-                    && let Some(dependency) = self.find_mut_by_id(*id)
-                {
-                    dependency.branches.remove(&current_index);
-                }
-                current_index = *dependencies.first().unwrap();
+            if let Some(index) = self.iter().position(|b| b.id == current_index) {
+                self.swap_remove(index);
+            }
+            
+            if let Some(id) = id
+                && let Some(dependency) = self.find_mut_by_id(id)
+            {
+                dependency.branches.remove(&current_index);
+                current_index = id;
             } else {
                 break;
             }
