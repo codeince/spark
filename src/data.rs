@@ -119,6 +119,14 @@ impl TrimKnown for Blocks {
             }
 
             if dependencies.len() == 1 {
+                if let Some(index) = self.iter().position(|b| b.id == current_index) {
+                    self.swap_remove(index);
+                }
+                if let Some(id) = dependencies.first()
+                    && let Some(dependency) = self.find_mut_by_id(*id)
+                {
+                    dependency.branches.remove(&current_index);
+                }
                 current_index = *dependencies.first().unwrap();
             } else {
                 break;
