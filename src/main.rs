@@ -233,7 +233,7 @@ async fn main() -> Result<()> {
         let content = message.join("\n");
         messages.push(ChatMessage::user().content(&content).build());
 
-        let response = if let Some(block) = current_block
+        let mut response = if let Some(block) = current_block
             && let Some(user_block) = blocks.iter().find(|user_block| {
                 block.branches.contains(&user_block.id) && user_block.content == content
             })
@@ -257,29 +257,28 @@ async fn main() -> Result<()> {
             }
             blocks.push(user_block);
 
-            let mut message = messages.last().unwrap().to_owned();
+            let mut message = vec![messages.last().unwrap().to_owned()];
             if !blocks.is_plain() {
                 let mut blocks = blocks.clone();
                 blocks.trim_known(blocks.len() - 1);
 
                 if blocks.len() > 3 {
-                    message.content += &format!(
-                        "\n\nAll ways of this story in JSON(don't print it to user):\n\t{}",
-                        serde_json::to_string_pretty(&blocks)?
-                            .replace(r##""role": "0""##, r##""role": "user""##)
-                            .replace(r##""role": "1""##, r##""role": "assistant""##)
+                    message.push(
+                        ChatMessage::user()
+                            .content(format!(
+                                "All ways of this story in JSON(don't print it to user):\n\t{}",
+                                serde_json::to_string_pretty(&blocks)?
+                                    .replace(r##""role": "0""##, r##""role": "user""##)
+                                    .replace(r##""role": "1""##, r##""role": "assistant""##)
+                            ))
+                            .build(),
                     );
                 }
             }
-            let message = vec![message];
 
             let mut content = String::new();
             while content.is_empty() {
                 content = llm.chat(&message).await?.text().unwrap();
-
-                if let Some((_thinking, writing)) = content.split_once("</think>") {
-                    content = writing.to_owned();
-                }
             }
             content = spark::parse_macro(&content).to_string();
             let mut ai_block: Block = Block::ai(&content);
@@ -295,6 +294,10 @@ async fn main() -> Result<()> {
             .remember(messages.last().unwrap())
             .await?;
 
+        if let Some((_, writing)) = response.split_once("</think>") {
+            response = writing.to_owned();
+        }
+        
         termimad::print_inline(&format!(
             "<***{}***>\n{}\n{}",
             tr!("ai"),

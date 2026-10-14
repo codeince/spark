@@ -1,19 +1,18 @@
 [package]
 name = "spark"
 description = "Flamee on Rust with extra features"
-authors = ["Code Slasher Incorporation"]
-version = "0.1.7"
+version = "0.1.8"
 edition = "2024"
 license-file = "LICENSE"
 readme = "README.md"
-
-[target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
 
 [package.metadata.winres]
 ProductName = "Spark"
 LegalCopyright = "Code Slasher Incorporation"
 FileDescription = "This is your AI text adventure generator"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
 
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
