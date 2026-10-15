@@ -67,6 +67,11 @@ jobs:
           merge-multiple: true
           path: artifacts
       - name: Create GitHub Release
-        run: gh release create "${{ needs.build.outputs.version }}" artifacts/* --generate-notes -R ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if gh release view "${{ env.VERSION }}" >/dev/null 2>&1; then
+            gh release delete "${{ env.VERSION }}" --cleanup-tag
+          fi
+          gh release create "${{ env.VERSION }}" artifacts/* --generate-notes -R ${{ github.repository }}
