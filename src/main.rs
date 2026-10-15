@@ -133,7 +133,7 @@ async fn main() -> color_eyre::Result<()> {
     termimad::print_text(&table);
 
     let mut model_name = String::new();
-    let model = if let Ok(_) = std::io::stdin().read_line(&mut model_name)
+    let model = if std::io::stdin().read_line(&mut model_name).is_ok()
         && let Ok(model_id) = model_name.trim().parse::<usize>()
         && let Some(model) = models.get(model_id - 1)
     {
@@ -327,7 +327,7 @@ async fn main() -> color_eyre::Result<()> {
         if let Some((_, writing)) = response.split_once("</think>") {
             response = writing.to_owned();
         }
-
+        
         termimad::print_inline(&format!(
             "<***{}***>\n{}\n{}",
             tr!("ai"),
