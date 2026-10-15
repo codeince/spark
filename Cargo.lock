@@ -4048,7 +4048,7 @@ dependencies = [
 
 [[package]]
 name = "spark"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "clap",
  "color-eyre",
