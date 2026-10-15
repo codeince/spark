@@ -1,5 +1,4 @@
 use clap::Parser;
-use color_eyre::eyre::Result;
 use llm::{
     backends::ollama::Ollama,
     builder::{LLMBackend, LLMBuilder},
@@ -54,19 +53,20 @@ struct Options {
     input_path: PathBuf,
 
     // Save path
-    #[arg(short, long, default_value = "save.spark")]
-    save_path: PathBuf,
+    #[arg(short, long)]
+    output_path: Option<PathBuf>,
 }
 
 r18::init!("locales");
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     r18::auto_detect!();
 
-    let mut current_block_index: usize = 0;
+    let mut current_block_index = 0;
     let options = Options::parse();
+    let output_path = options.output_path.unwrap_or(options.input_path.clone());
     let prompt = std::fs::read_to_string(&options.prompt_path)?;
 
     let model = match options.backend {
@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
 
     let mut blocks = {
         let content = std::fs::read(&options.input_path).unwrap_or_default();
-        if let Ok(data) = serde_json::from_slice::<Vec<Block>>(&content) {
+        if let Ok(data) = serde_json::from_slice(&content) {
             data
         } else {
             rkyv::from_bytes::<Blocks, rkyv::rancor::Error>(&content).unwrap_or_default()
@@ -211,7 +211,7 @@ async fn main() -> Result<()> {
                 is_ready = true;
             }
             if simple_line.contains("/save") {
-                save_story(&blocks, &options.save_path)?;
+                save_story(&blocks, &output_path)?;
                 println!("{}", tr!("saved"));
             }
             message.push(line.trim_end().to_owned());
@@ -307,5 +307,5 @@ async fn main() -> Result<()> {
         message.clear();
     }
 
-    save_story(&blocks, &options.save_path)
+    save_story(&blocks, &output_path)
 }

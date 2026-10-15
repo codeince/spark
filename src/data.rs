@@ -65,7 +65,7 @@ pub trait FindById<T> {
     fn find_by_id(&self, id: impl Into<usize>) -> Option<&T>;
 }
 
-impl FindById<Block> for Blocks {
+impl FindById<Block> for [Block] {
     fn find_by_id(&self, id: impl Into<usize>) -> Option<&Block> {
         let id = id.into();
         self.iter().find(|block| block.id == id)
@@ -76,7 +76,7 @@ pub trait FindMutById<T> {
     fn find_mut_by_id(&mut self, id: impl Into<usize>) -> Option<&mut T>;
 }
 
-impl FindMutById<Block> for Blocks {
+impl FindMutById<Block> for [Block] {
     fn find_mut_by_id(&mut self, id: impl Into<usize>) -> Option<&mut Block> {
         let id = id.into();
         self.iter_mut().find(|block| block.id == id)
@@ -87,7 +87,7 @@ pub trait IsPlain {
     fn is_plain(&self) -> bool;
 }
 
-impl IsPlain for Blocks {
+impl IsPlain for [Block] {
     fn is_plain(&self) -> bool {
         for block in self {
             if block.branches.len() > 1 {

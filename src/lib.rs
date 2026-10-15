@@ -3,21 +3,21 @@ use crate::data::{Block, Blocks, FindById};
 use regex::Captures;
 use std::{borrow::Cow, path::Path};
 
-pub fn save_story(blocks: &Blocks, save_path: &Path) -> color_eyre::Result<()> {
+pub fn save_story(blocks: &Blocks, output_path: &Path) -> color_eyre::Result<()> {
     if !blocks.is_empty() {
-        let content = if save_path.ends_with(".json") {
+        let content = if output_path.ends_with(".json") {
             let data = serde_json::to_string(blocks)?.to_owned();
             data.as_bytes().into()
         } else {
             rkyv::to_bytes::<rkyv::rancor::Error>(blocks)?.to_vec()
         };
-        std::fs::write(save_path, content)?;
+        std::fs::write(output_path, content)?;
     }
 
     Ok(())
 }
 
-pub fn get_branches_as_table(block: &Block, blocks: &Blocks, header: &str) -> String {
+pub fn get_branches_as_table(block: &Block, blocks: &[Block], header: &str) -> String {
     show_data_as_table(
         &block
             .branches
