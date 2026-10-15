@@ -1,6 +1,6 @@
 use clap::Parser;
 use llm::{
-    backends::ollama::Ollama,
+    backends::{ollama::Ollama, openai::OpenAI},
     builder::{LLMBackend, LLMBuilder},
     chat::{ChatMessage, ChatRole},
     memory::{MemoryProvider, SharedMemory, SlidingWindowMemory, TrimStrategy},
@@ -25,7 +25,7 @@ struct Options {
     base_url: String,
 
     // API Key for AI
-    #[arg(short, long, default_value = "")]
+    #[arg(short, long, default_value = "abc")]
     api_key: String,
 
     // Backend for AI
@@ -69,7 +69,7 @@ async fn main() -> color_eyre::Result<()> {
     let output_path = options.output_path.unwrap_or(options.input_path.clone());
     let prompt = std::fs::read_to_string(&options.prompt_path)?;
 
-    let model = match options.backend {
+    let mut models = match options.backend {
         LLMBackend::Ollama => {
             let model_provider = Ollama::new(
                 &options.base_url,
@@ -85,32 +85,62 @@ async fn main() -> color_eyre::Result<()> {
                 None,
             );
 
-            let mut models = model_provider.list_models(None).await?.get_models();
-            models.sort();
-
-            let table = show_data_as_table(
-                &models
-                    .iter()
-                    .enumerate()
-                    .map(|(i, model)| vec![(i + 1).to_string(), model.to_owned()])
-                    .collect::<Vec<Vec<String>>>(),
-                tr!("model_table"),
-            );
-
-            termimad::print_text(&table);
-
-            let mut model_name = String::new();
-            if let Ok(_) = std::io::stdin().read_line(&mut model_name)
-                && let Ok(model_id) = model_name.trim().parse::<usize>()
-                && let Some(model) = models.get(model_id - 1)
-            {
-                model.to_owned()
-            } else {
-                eprintln!("{}", tr!("model_not_found"));
-                options.model.clone()
-            }
+            model_provider.list_models(None).await?.get_models()
         }
-        _ => options.model.to_owned(),
+        LLMBackend::OpenAI => {
+            let model_provider = OpenAI::new(
+                &options.api_key,
+                Some(options.base_url.clone()),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )?;
+
+            model_provider.list_models(None).await?.get_models()
+        }
+        _ => vec![],
+    };
+    models.sort();
+
+    let table = show_data_as_table(
+        &models
+            .iter()
+            .enumerate()
+            .map(|(i, model)| vec![(i + 1).to_string(), model.to_owned()])
+            .collect::<Vec<Vec<String>>>(),
+        tr!("model_table"),
+    );
+
+    termimad::print_text(&table);
+
+    let mut model_name = String::new();
+    let model = if let Ok(_) = std::io::stdin().read_line(&mut model_name)
+        && let Ok(model_id) = model_name.trim().parse::<usize>()
+        && let Some(model) = models.get(model_id - 1)
+    {
+        model.to_owned()
+    } else {
+        eprintln!("{}", tr!("model_not_found"));
+        options.model.clone()
     };
 
     let mut blocks = {
@@ -297,7 +327,7 @@ async fn main() -> color_eyre::Result<()> {
         if let Some((_, writing)) = response.split_once("</think>") {
             response = writing.to_owned();
         }
-        
+
         termimad::print_inline(&format!(
             "<***{}***>\n{}\n{}",
             tr!("ai"),
