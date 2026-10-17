@@ -41,12 +41,12 @@ struct Options {
     timeout: u64,
 
     // A max amount of words in answer
-    #[arg(long, default_value = "16384")]
-    max_tokens: u32,
+    #[arg(long)]
+    max_tokens: Option<u32>,
 
     // Temperature of LLM
-    #[arg(short, long, default_value = "1.0")]
-    temperature: f32,
+    #[arg(short, long)]
+    temperature: Option<f32>,
 
     // Story path
     #[arg(short, long, default_value = "save.spark")]
@@ -159,17 +159,21 @@ async fn main() -> color_eyre::Result<()> {
         .collect();
     let memory = SlidingWindowMemory::with_strategy(3, TrimStrategy::Summarize);
     let shared_memory = SharedMemory::new_reactive(memory);
-    let llm = LLMBuilder::new()
+    let mut llm = LLMBuilder::new()
         .backend(options.backend)
         .base_url(&options.base_url)
         .api_key(&options.api_key)
         .model(&model)
-        .max_tokens(options.max_tokens)
-        .temperature(options.temperature)
         .timeout_seconds(options.timeout)
         .memory(shared_memory.clone())
-        .system(prompt)
-        .build()?;
+        .system(prompt);
+    if let Some(max_tokens) = options.max_tokens {
+        llm = llm.max_tokens(max_tokens);
+    }
+    if let Some(temperature) = options.temperature {
+        llm = llm.temperature(temperature);
+    }
+    let llm = llm.build()?;
 
     let mut memory = shared_memory.clone();
     for message in messages.iter() {
