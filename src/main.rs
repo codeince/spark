@@ -282,7 +282,7 @@ async fn main() -> color_eyre::Result<()> {
         } else {
             println!("{}", tr!("generating"));
 
-            let mut user_block: Block = messages.last().unwrap().to_owned().into();
+            let mut user_block: Block = unsafe {messages.last().unwrap_unchecked()}.to_owned().into();
             user_block.id = blocks.len();
             user_block.branches.insert(blocks.len() + 1);
 

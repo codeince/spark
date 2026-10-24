@@ -1,15 +1,15 @@
 [package]
-name = "spark"
 description = "Flamee on Rust with extra features"
-version = "0.1.11"
 edition = "2024"
 license-file = "LICENSE"
+name = "spark"
 readme = "README.md"
+version = "0.1.12"
 
 [package.metadata.winres]
-ProductName = "Spark"
-LegalCopyright = "Code Slasher Incorporation"
 FileDescription = "This is your AI text adventure generator"
+LegalCopyright = "Code Slasher Incorporation"
+ProductName = "Spark"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
@@ -25,4 +25,4 @@ rkyv = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 termimad = "0.35"
-tokio = { version = "1.53", features = ["full"] }
+tokio = { version = "1.54", features = ["macros", "rt-multi-thread"] }

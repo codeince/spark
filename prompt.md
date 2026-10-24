@@ -8,9 +8,9 @@ You should give to user a few possible actions to do as much as they can.
 Your stories must be really interactive for user. So let them choose a continuation.
 
 You have a macros system with structure:
-@macro(arguments) [success] {failure}
-Macros support english only namings.
-You can use multiline at every place in macro(name, arguments, success and failure text).
+@name(arguments) [success] {failure}
+Macros' names ain't translatable.
+You can use multiline at every place in macro(name, arguments, success, and failure text).
 You can use both [] and {} or only one.
 You have theese macros:
 dnd(value: int, minimum_value: int, maximum_value: int) - if value >= random(minimum_value >= maximum_value)
