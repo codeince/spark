@@ -48,6 +48,10 @@ struct Options {
     #[arg(short, long)]
     temperature: Option<f32>,
 
+    // Smart scissors for next word
+    #[arg(short, long)]
+    top_p: Option<f32>,
+
     // Story path
     #[arg(short, long, default_value = "save.spark")]
     input_path: PathBuf,
@@ -172,6 +176,9 @@ async fn main() -> color_eyre::Result<()> {
     }
     if let Some(temperature) = options.temperature {
         llm = llm.temperature(temperature);
+    }
+    if let Some(top_p) = options.top_p {
+    	llm = llm.top_p(top_p)
     }
     let llm = llm.build()?;
 
