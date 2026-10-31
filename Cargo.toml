@@ -4,7 +4,7 @@ edition = "2024"
 license-file = "LICENSE"
 name = "spark"
 readme = "README.md"
-version = "0.1.13"
+version = "0.1.14"
 
 [package.metadata.winres]
 FileDescription = "This is your AI text adventure generator"

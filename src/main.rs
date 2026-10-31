@@ -37,7 +37,7 @@ struct Options {
     model: String,
 
     // Timeout of AI answer
-    #[arg(long, default_value = "100")]
+    #[arg(short, long, default_value = "100")]
     timeout: u64,
 
     // A max amount of words in answer
@@ -45,11 +45,11 @@ struct Options {
     max_tokens: Option<u32>,
 
     // Temperature of LLM
-    #[arg(short, long)]
+    #[arg(long)]
     temperature: Option<f32>,
 
     // Smart scissors for next word
-    #[arg(short, long)]
+    #[arg(long)]
     top_p: Option<f32>,
 
     // Story path
