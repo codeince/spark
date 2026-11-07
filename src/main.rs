@@ -29,7 +29,7 @@ struct Options {
     api_key: String,
 
     // Backend for AI
-    #[arg(short, long, default_value = "ollama")]
+    #[arg(long, default_value = "ollama")]
     backend: LLMBackend,
 
     // Model to use
